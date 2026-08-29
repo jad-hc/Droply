@@ -212,3 +212,144 @@ export async function deleteMenuItem(
     `/restaurant/${restaurantId}/menu`
   );
 }
+
+/*Add category update action */
+
+export async function updateMenuCategory(
+  restaurantId: string,
+  categoryId: string,
+  previousState: MenuCategoryState,
+  formData: FormData
+): Promise<MenuCategoryState> {
+  await requireRestaurantAccess(restaurantId);
+
+  const result = menuCategorySchema.safeParse({
+    name: formData.get("name"),
+    description: formData.get("description"),
+    sortOrder: formData.get("sortOrder"),
+  });
+
+  if (!result.success) {
+    return {
+      success: false,
+      errors: result.error.flatten().fieldErrors,
+    };
+  }
+
+  const category = await prisma.menuCategory.findFirst({
+    where: {
+      id: categoryId,
+      restaurantId,
+    },
+  });
+
+  if (!category) {
+    return {
+      success: false,
+      message: "Category not found.",
+    };
+  }
+
+  try {
+    await prisma.menuCategory.update({
+      where: {
+        id: categoryId,
+      },
+      data: {
+        name: result.data.name,
+        description: result.data.description || null,
+        sortOrder: result.data.sortOrder,
+      },
+    });
+
+    revalidatePath(`/restaurant/${restaurantId}/menu`);
+
+    return {
+      success: true,
+      message: "Category updated.",
+    };
+  } catch {
+    return {
+      success: false,
+      message: "Unable to update category.",
+    };
+  }
+}
+
+/*Add menu item update action */
+
+export async function updateMenuItem(
+  restaurantId: string,
+  itemId: string,
+  previousState: MenuItemState,
+  formData: FormData
+): Promise<MenuItemState> {
+  await requireRestaurantAccess(restaurantId);
+
+  const result = menuItemSchema.safeParse({
+    name: formData.get("name"),
+    description: formData.get("description"),
+    price: formData.get("price"),
+    categoryId: formData.get("categoryId"),
+    image: formData.get("image"),
+    isAvailable: formData.get("isAvailable") === "on",
+    isFeatured: formData.get("isFeatured") === "on",
+  });
+
+  if (!result.success) {
+    return {
+      success: false,
+      errors: result.error.flatten().fieldErrors,
+    };
+  }
+
+  const item = await prisma.menuItem.findFirst({
+    where: {
+      id: itemId,
+      restaurantId,
+    },
+  });
+
+  if (!item) {
+    return {
+      success: false,
+      message: "Menu item not found.",
+    };
+  }
+
+  const category = await prisma.menuCategory.findFirst({
+    where: {
+      id: result.data.categoryId,
+      restaurantId,
+    },
+  });
+
+  if (!category) {
+    return {
+      success: false,
+      message: "Invalid category.",
+    };
+  }
+
+  await prisma.menuItem.update({
+    where: {
+      id: itemId,
+    },
+    data: {
+      name: result.data.name,
+      description: result.data.description || null,
+      price: result.data.price,
+      categoryId: result.data.categoryId,
+      image: result.data.image || null,
+      isAvailable: result.data.isAvailable,
+      isFeatured: result.data.isFeatured,
+    },
+  });
+
+  revalidatePath(`/restaurant/${restaurantId}/menu`);
+
+  return {
+    success: true,
+    message: "Menu item updated.",
+  };
+}

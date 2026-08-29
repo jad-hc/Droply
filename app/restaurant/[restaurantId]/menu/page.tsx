@@ -6,6 +6,7 @@ import { DeleteCategoryButton } from "./delete-category-button";
 
 import { MenuItemForm } from "./menu-item-form";
 import { DeleteMenuItemButton } from "./delete-menu-item-button";
+import Link from "next/link";
 
 type Props = {
   params: Promise<{
@@ -98,9 +99,12 @@ export default async function RestaurantMenuPage({
                     </div>
 
                     <div className="flex gap-4">
-                      <button className="text-sm">
+                      <Link
+                        href={`/restaurant/${restaurantId}/menu/categories/${category.id}/edit`}
+                        className="text-sm"
+                    >
                         Edit
-                      </button>
+                    </Link>
 
                       <DeleteCategoryButton
                         restaurantId={
@@ -208,7 +212,14 @@ export default async function RestaurantMenuPage({
                         restaurantId={restaurantId}
                         itemId={item.id}
                     />
+                    <Link
+                        href={`/restaurant/${restaurantId}/menu/items/${item.id}/edit`}
+                        className="text-sm"
+                    >
+                        Edit
+                    </Link>
                     </div>
+                    
                 </div>
               </div>
             )

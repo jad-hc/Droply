@@ -38,7 +38,7 @@ export function DeleteMenuItemButton({
       type="button"
       onClick={handleDelete}
       disabled={isPending}
-      className="text-sm text-red-500 disabled:opacity-50"
+      className="text-sm text-red-500 disabled:opacity-50 hover:bg-red-50 hover:text-red-600"
     >
       {isPending
         ? "Deleting..."
