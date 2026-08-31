@@ -46,6 +46,7 @@ model User {
   emailVerified Boolean   @default(false)
   sessions      Session[]
   accounts      Account[]
+  orders        Order[]
 
   @@map("user")
 }
@@ -103,6 +104,7 @@ model Restaurant {
 
   categories MenuCategory[]
   menuItems  MenuItem[]
+  orders     Order[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -282,4 +284,92 @@ model MenuItemOption {
   updatedAt DateTime @updatedAt
 
   @@index([optionGroupId])
+}
+
+/**
+ * Orders - payment methods and addresses
+ */
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  RESTAURANT_ACCEPTED
+  PREPARING
+  READY_FOR_PICKUP
+  DRIVER_ASSIGNED
+  PICKED_UP
+  ON_THE_WAY
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+model Order {
+  id String @id @default(cuid())
+
+  status        OrderStatus   @default(PENDING)
+  paymentMethod PaymentMethod
+  paymentStatus PaymentStatus @default(PENDING)
+
+  subtotal    Decimal @db.Decimal(10, 2)
+  deliveryFee Decimal @default(0) @db.Decimal(10, 2)
+  total       Decimal @db.Decimal(10, 2)
+
+  // Address snapshot
+  deliveryAddress String
+  city            String
+  area            String?
+  building        String?
+  floor           String?
+  apartment       String?
+  instructions    String?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Restrict)
+
+  items OrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([restaurantId])
+  @@index([status])
+}
+
+model OrderItem {
+  id String @id @default(cuid())
+
+  name String
+
+  quantity Int
+
+  basePrice Decimal @db.Decimal(10, 2)
+  unitPrice Decimal @db.Decimal(10, 2)
+  total     Decimal @db.Decimal(10, 2)
+
+  menuItemId String
+
+  selectedOptions Json?
+
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([orderId])
 }

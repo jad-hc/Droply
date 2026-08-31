@@ -58,13 +58,18 @@ export default async function ManageRestaurantPage({
         </Link>
 
         <div className="rounded-xl border p-6">
-          <h2 className="font-semibold">
-            Orders
-          </h2>
+          <Link
+  href={`/restaurant/${restaurant.id}/orders`}
+  className="rounded-xl border p-6"
+>
+  <h2 className="font-semibold">
+    Orders
+  </h2>
 
-          <p className="mt-2 text-sm text-muted-foreground">
-            Coming soon
-          </p>
+  <p className="mt-2 text-sm text-muted-foreground">
+    Manage incoming orders
+  </p>
+</Link>
         </div>
       </div>
     </main>
