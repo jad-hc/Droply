@@ -7,6 +7,8 @@ import { requireRestaurantAccess } from "@/lib/restaurant-access";
 import { menuCategorySchema } from "@/validations/menu-category";
 
 import { menuItemSchema } from "@/validations/menu-item";
+import { optionGroupSchema } from "@/validations/menu-option-group";
+import { menuItemOptionSchema } from "@/validations/menu-item-option";
 
 export type MenuCategoryState = {
   success: boolean;
@@ -352,4 +354,217 @@ export async function updateMenuItem(
     success: true,
     message: "Menu item updated.",
   };
+}
+
+/*              */
+
+export type OptionGroupState = {
+  success: boolean;
+  message?: string;
+
+  errors?: {
+    name?: string[];
+    required?: string[];
+    minSelect?: string[];
+    maxSelect?: string[];
+  };
+};
+
+export async function createOptionGroup(
+  restaurantId: string,
+  menuItemId: string,
+  previousState: OptionGroupState,
+  formData: FormData
+): Promise<OptionGroupState> {
+  await requireRestaurantAccess(restaurantId);
+
+  const result = optionGroupSchema.safeParse({
+    name: formData.get("name"),
+    required: formData.get("required") === "on",
+    minSelect: formData.get("minSelect"),
+    maxSelect: formData.get("maxSelect"),
+  });
+
+  if (!result.success) {
+    return {
+      success: false,
+      errors: result.error.flatten().fieldErrors,
+    };
+  }
+
+  const item = await prisma.menuItem.findFirst({
+    where: {
+      id: menuItemId,
+      restaurantId,
+    },
+  });
+
+  if (!item) {
+    return {
+      success: false,
+      message: "Menu item not found.",
+    };
+  }
+
+  await prisma.menuItemOptionGroup.create({
+    data: {
+      menuItemId,
+      name: result.data.name,
+      required: result.data.required,
+      minSelect: result.data.minSelect,
+      maxSelect: result.data.maxSelect,
+    },
+  });
+
+  revalidatePath(
+    `/restaurant/${restaurantId}/menu/items/${menuItemId}/options`
+  );
+
+  return {
+    success: true,
+    message: "Option group created.",
+  };
+}
+
+/*delete option group action */
+
+export async function deleteOptionGroup(
+  restaurantId: string,
+  menuItemId: string,
+  optionGroupId: string
+) {
+  await requireRestaurantAccess(restaurantId);
+
+  const group =
+    await prisma.menuItemOptionGroup.findFirst({
+      where: {
+        id: optionGroupId,
+        menuItemId,
+        menuItem: {
+          restaurantId,
+        },
+      },
+    });
+
+  if (!group) {
+    throw new Error("Option group not found.");
+  }
+
+  await prisma.menuItemOptionGroup.delete({
+    where: {
+      id: optionGroupId,
+    },
+  });
+
+  revalidatePath(
+    `/restaurant/${restaurantId}/menu/items/${menuItemId}/options`
+  );
+}
+
+/*                 */
+
+export type MenuItemOptionState = {
+  success: boolean;
+  message?: string;
+
+  errors?: {
+    name?: string[];
+    priceAdjustment?: string[];
+  };
+};
+
+export async function createMenuItemOption(
+  restaurantId: string,
+  menuItemId: string,
+  optionGroupId: string,
+  previousState: MenuItemOptionState,
+  formData: FormData
+): Promise<MenuItemOptionState> {
+  await requireRestaurantAccess(restaurantId);
+
+  const result = menuItemOptionSchema.safeParse({
+    name: formData.get("name"),
+    priceAdjustment: formData.get("priceAdjustment"),
+  });
+
+  if (!result.success) {
+    return {
+      success: false,
+      errors: result.error.flatten().fieldErrors,
+    };
+  }
+
+  const group =
+    await prisma.menuItemOptionGroup.findFirst({
+      where: {
+        id: optionGroupId,
+        menuItemId,
+        menuItem: {
+          restaurantId,
+        },
+      },
+    });
+
+  if (!group) {
+    return {
+      success: false,
+      message: "Option group not found.",
+    };
+  }
+
+  await prisma.menuItemOption.create({
+    data: {
+      optionGroupId,
+      name: result.data.name,
+      priceAdjustment: result.data.priceAdjustment,
+    },
+  });
+
+  revalidatePath(
+    `/restaurant/${restaurantId}/menu/items/${menuItemId}/options`
+  );
+
+  return {
+    success: true,
+    message: "Option added.",
+  };
+}
+
+/*delete*/
+
+export async function deleteMenuItemOption(
+  restaurantId: string,
+  menuItemId: string,
+  optionGroupId: string,
+  optionId: string
+) {
+  await requireRestaurantAccess(restaurantId);
+
+  const option =
+    await prisma.menuItemOption.findFirst({
+      where: {
+        id: optionId,
+        optionGroupId,
+        optionGroup: {
+          menuItemId,
+          menuItem: {
+            restaurantId,
+          },
+        },
+      },
+    });
+
+  if (!option) {
+    throw new Error("Option not found.");
+  }
+
+  await prisma.menuItemOption.delete({
+    where: {
+      id: optionId,
+    },
+  });
+
+  revalidatePath(
+    `/restaurant/${restaurantId}/menu/items/${menuItemId}/options`
+  );
 }

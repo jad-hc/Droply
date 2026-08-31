@@ -218,6 +218,12 @@ export default async function RestaurantMenuPage({
                     >
                         Edit
                     </Link>
+                    <Link
+  href={`/restaurant/${restaurantId}/menu/items/${item.id}/options`}
+  className="text-sm"
+>
+  Options
+</Link>
                     </div>
                     
                 </div>
