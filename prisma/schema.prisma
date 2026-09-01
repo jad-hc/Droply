@@ -149,6 +149,8 @@ model DriverProfile {
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  deliveries Order[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -335,6 +337,9 @@ model Order {
   apartment       String?
   instructions    String?
 
+  driverId String?
+  driver   DriverProfile? @relation(fields: [driverId], references: [id], onDelete: SetNull)
+
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
 
@@ -349,6 +354,7 @@ model Order {
   @@index([userId])
   @@index([restaurantId])
   @@index([status])
+  @@index([driverId])
 }
 
 model OrderItem {
@@ -373,3 +379,7 @@ model OrderItem {
 
   @@index([orderId])
 }
+
+/**
+ * Driver model
+ */
