@@ -6,6 +6,8 @@ import { setDriverAvailability } from "./actions";
 import { AcceptDeliveryButton } from "./accept-delivery-button";
 import { ActiveDeliveryControls } from "./active-delivery-controls";
 
+import { DriverRealtime } from "./driver-realtime";
+
 export default async function DriverDashboardPage() {
   const user =
     await requireRole(
@@ -94,6 +96,8 @@ export default async function DriverDashboardPage() {
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-10">
+      <DriverRealtime />
+      
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">

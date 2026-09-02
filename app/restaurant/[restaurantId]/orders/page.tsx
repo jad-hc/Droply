@@ -2,6 +2,8 @@ import prisma from "@/lib/prisma";
 import { requireRestaurantAccess } from "@/lib/restaurant-access";
 import { OrderStatusControls } from "./order-status-controls";
 
+import { OrdersRealtime } from "./orders-realtime";
+
 type Props = {
   params: Promise<{
     restaurantId: string;
@@ -47,6 +49,8 @@ export default async function RestaurantOrdersPage({
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
+      <OrdersRealtime restaurantId={restaurantId} />
+      
       <div>
         <h1 className="text-3xl font-bold">
           Orders
