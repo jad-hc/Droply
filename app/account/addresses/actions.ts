@@ -19,6 +19,8 @@ export type AddressState = {
     floor?: string[];
     apartment?: string[];
     instructions?: string[];
+    latitude?: string[];
+    longitude?: string[];
   };
 };
 
@@ -37,6 +39,8 @@ export async function createAddress(
     floor: formData.get("floor"),
     apartment: formData.get("apartment"),
     instructions: formData.get("instructions"),
+    latitude:formData.get("latitude"),
+    longitude:formData.get("longitude"),
   });
 
   if (!result.success) {
@@ -64,6 +68,8 @@ export async function createAddress(
       floor: result.data.floor || null,
       apartment: result.data.apartment || null,
       instructions: result.data.instructions || null,
+      latitude:result.data.latitude,
+      longitude:result.data.longitude,
 
       // First address automatically becomes default.
       isDefault: existingAddressCount === 0,

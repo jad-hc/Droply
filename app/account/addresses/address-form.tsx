@@ -1,6 +1,11 @@
 "use client";
 
 import { useActionState } from "react";
+import { useState } from "react";
+
+import {
+  LocationPickerWrapper,
+} from "@/components/location-picker-wrapper";
 
 import {
   AddressState,
@@ -10,6 +15,16 @@ import {
 const initialState: AddressState = {
   success: false,
 };
+
+const [latitude, setLatitude] =
+  useState<number | null>(
+    null
+  );
+
+const [longitude, setLongitude] =
+  useState<number | null>(
+    null
+  );
 
 export function AddressForm() {
   const [state, formAction, isPending] =
@@ -132,6 +147,44 @@ export function AddressForm() {
           className="mt-2 w-full rounded-md border px-3 py-2"
         />
       </div>
+
+      <div>
+  <label className="text-sm font-medium">
+    Delivery location
+  </label>
+
+  <div className="mt-3">
+    <LocationPickerWrapper
+      latitude={latitude}
+      longitude={longitude}
+      onChange={(
+        latitude,
+        longitude
+      ) => {
+        setLatitude(latitude);
+        setLongitude(longitude);
+      }}
+    />
+  </div>
+
+  <input
+    type="hidden"
+    name="latitude"
+    value={latitude ?? ""}
+  />
+
+  <input
+    type="hidden"
+    name="longitude"
+    value={longitude ?? ""}
+  />
+
+  {state.errors?.latitude && (
+    <p className="mt-2 text-sm text-red-500">
+      Please select your location on the map.
+    </p>
+  )}
+</div>
 
       {state.message && (
         <p
