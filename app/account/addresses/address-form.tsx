@@ -16,7 +16,16 @@ const initialState: AddressState = {
   success: false,
 };
 
-const [latitude, setLatitude] =
+
+
+export function AddressForm() {
+  const [state, formAction, isPending] =
+    useActionState(
+      createAddress,
+      initialState
+    );
+
+    const [latitude, setLatitude] =
   useState<number | null>(
     null
   );
@@ -25,13 +34,6 @@ const [longitude, setLongitude] =
   useState<number | null>(
     null
   );
-
-export function AddressForm() {
-  const [state, formAction, isPending] =
-    useActionState(
-      createAddress,
-      initialState
-    );
 
   return (
     <form
