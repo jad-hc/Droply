@@ -6,7 +6,7 @@ import { setDriverAvailability } from "./actions";
 import { AcceptDeliveryButton } from "./accept-delivery-button";
 import { ActiveDeliveryControls } from "./active-delivery-controls";
 
-import { DriverRealtime } from "./driver-realtime";
+import { AutoRefresh } from "@/components/auto-refresh";
 
 export default async function DriverDashboardPage() {
   const user =
@@ -96,8 +96,8 @@ export default async function DriverDashboardPage() {
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-10">
-      <DriverRealtime />
-      
+      <AutoRefresh interval={3000} />
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">

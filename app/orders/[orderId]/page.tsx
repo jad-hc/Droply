@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import prisma from "@/lib/prisma";
 import { requireUser } from "@/lib/auth-guard";
 
-import { OrderRealtime } from "./order-realtime";
+import { AutoRefresh } from "@/components/auto-refresh";
 
 type Props = {
   params: Promise<{
@@ -96,7 +96,10 @@ export default async function OrderPage({
   return (
     <main className="mx-auto max-w-4xl px-4 py-10">
       {/* HEADER */}
-      <OrderRealtime orderId={order.id} />
+      {order.status !== "DELIVERED" &&
+        order.status !== "CANCELLED" && (
+          <AutoRefresh interval={3000} />
+        )}
 
       <div className="flex flex-wrap items-start justify-between gap-5">
         <div>
