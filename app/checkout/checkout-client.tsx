@@ -68,12 +68,132 @@ export function CheckoutClient({
   const [quoteError, setQuoteError] =
     useState("");
 
-  const [isLoadingQuote, setIsLoadingQuote] =
-    useState(false);
+  const [
+    isLoadingQuote,
+    setIsLoadingQuote,
+  ] = useState(false);
+
+  // -------------------------
+  // HOOK 1: MOUNT CHECK
+  // -------------------------
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // -------------------------
+  // HOOK 2: LOAD QUOTE
+  // -------------------------
+
+  useEffect(() => {
+    if (
+      !mounted ||
+      !addressId ||
+      items.length === 0
+    ) {
+      setQuote(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadQuote() {
+      setIsLoadingQuote(true);
+      setQuoteError("");
+
+      try {
+        const response =
+          await fetch(
+            "/api/checkout/quote",
+            {
+              method: "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+
+              body: JSON.stringify({
+                addressId,
+
+                items: items.map(
+                  (item) => ({
+                    menuItemId:
+                      item.menuItemId,
+
+                    quantity:
+                      item.quantity,
+
+                    selectedOptionIds:
+                      item.selectedOptions.map(
+                        (option) =>
+                          option.id
+                      ),
+                  })
+                ),
+              }),
+            }
+          );
+
+        const data =
+          await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.message ??
+              "Unable to calculate delivery."
+          );
+        }
+
+        if (!cancelled) {
+          setQuote({
+            distanceKm:
+              data.distanceKm,
+
+            subtotal:
+              data.subtotal,
+
+            deliveryFee:
+              data.deliveryFee,
+
+            total:
+              data.total,
+          });
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setQuote(null);
+
+          setQuoteError(
+            error instanceof Error
+              ? error.message
+              : "Unable to calculate delivery."
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingQuote(
+            false
+          );
+        }
+      }
+    }
+
+    loadQuote();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    mounted,
+    addressId,
+    items,
+  ]);
+
+  // -------------------------
+  // EARLY RETURNS COME
+  // AFTER ALL HOOKS
+  // -------------------------
 
   if (!mounted) {
     return (
@@ -83,26 +203,50 @@ export function CheckoutClient({
     );
   }
 
-  useEffect(() => {
-  if (
-    !mounted ||
-    !addressId ||
-    items.length === 0
-  ) {
-    setQuote(null);
-    return;
+  if (items.length === 0) {
+    return (
+      <div className="rounded-xl border p-10 text-center">
+        <h2 className="text-xl font-semibold">
+          Your cart is empty
+        </h2>
+
+        <Link
+          href="/restaurants"
+          className="mt-5 inline-block rounded-md bg-foreground px-5 py-2 text-background"
+        >
+          Browse restaurants
+        </Link>
+      </div>
+    );
   }
 
-  let cancelled = false;
+  // -------------------------
+  // FUNCTIONS ARE FINE HERE
+  // -------------------------
 
-  async function loadQuote() {
-    setIsLoadingQuote(true);
-    setQuoteError("");
+  async function handlePlaceOrder() {
+    setError("");
+
+    if (!addressId) {
+      setError(
+        "Please select a delivery address."
+      );
+      return;
+    }
+
+    if (!quote) {
+      setError(
+        "Unable to calculate the order total."
+      );
+      return;
+    }
+
+    setIsSubmitting(true);
 
     try {
       const response =
         await fetch(
-          "/api/checkout/quote",
+          "/api/checkout/place-order",
           {
             method: "POST",
 
@@ -113,6 +257,9 @@ export function CheckoutClient({
 
             body: JSON.stringify({
               addressId,
+
+              paymentMethod:
+                "CASH",
 
               items: items.map(
                 (item) => ({
@@ -132,123 +279,6 @@ export function CheckoutClient({
             }),
           }
         );
-
-      const data =
-        await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.message ??
-            "Unable to calculate delivery."
-        );
-      }
-
-      if (!cancelled) {
-        setQuote({
-          distanceKm:
-            data.distanceKm,
-
-          subtotal:
-            data.subtotal,
-
-          deliveryFee:
-            data.deliveryFee,
-
-          total:
-            data.total,
-        });
-      }
-    } catch (error) {
-      if (!cancelled) {
-        setQuote(null);
-
-        setQuoteError(
-          error instanceof Error
-            ? error.message
-            : "Unable to calculate delivery."
-        );
-      }
-    } finally {
-      if (!cancelled) {
-        setIsLoadingQuote(false);
-      }
-    }
-  }
-
-  loadQuote();
-
-  return () => {
-    cancelled = true;
-  };
-}, [
-  mounted,
-  addressId,
-  items,
-]);
-
-  if (items.length === 0) {
-    return (
-      <div className="rounded-xl border p-10 text-center">
-        <h2 className="text-xl font-semibold">
-          Your cart is empty
-        </h2>
-
-        <Link
-          href="/restaurants"
-          className="mt-5 inline-block rounded-md bg-foreground px-5 py-2 text-background"
-        >
-          Browse restaurants
-        </Link>
-      </div>
-    );
-  }
-
-  async function handlePlaceOrder() {
-    setError("");
-
-    if (!addressId) {
-      setError(
-        "Please select a delivery address."
-      );
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      const response = await fetch(
-        "/api/checkout/place-order",
-        {
-          method: "POST",
-
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
-
-          body: JSON.stringify({
-            addressId,
-
-            paymentMethod: "CASH",
-
-            items: items.map(
-              (item) => ({
-                menuItemId:
-                  item.menuItemId,
-
-                quantity:
-                  item.quantity,
-
-                selectedOptionIds:
-                  item.selectedOptions.map(
-                    (option) =>
-                      option.id
-                  ),
-              })
-            ),
-          }),
-        }
-      );
 
       const data =
         await response.json();
@@ -277,6 +307,10 @@ export function CheckoutClient({
       setIsSubmitting(false);
     }
   }
+
+  // -------------------------
+  // JSX
+  // -------------------------
 
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
@@ -387,7 +421,7 @@ export function CheckoutClient({
         </section>
       </div>
 
-      {/* ORDER SUMMARY */}
+      {/* SUMMARY */}
 
       <aside className="h-fit rounded-xl border p-6">
         <h2 className="text-xl font-semibold">
@@ -421,76 +455,78 @@ export function CheckoutClient({
                   )
                 )}
               </div>
-
-              <span className="text-sm">
-                $
-                {(
-                  item.unitPrice *
-                  item.quantity
-                ).toFixed(2)}
-              </span>
             </div>
           ))}
         </div>
 
         <div className="mt-6 border-t pt-5">
-          <div className="mt-6 border-t pt-5">
-  {isLoadingQuote ? (
-    <p className="text-sm text-muted-foreground">
-      Calculating delivery...
-    </p>
-  ) : quoteError ? (
-    <div className="rounded-md bg-red-50 p-3 text-sm text-red-600">
-      {quoteError}
-    </div>
-  ) : quote ? (
-    <div className="space-y-3">
-      <div className="flex justify-between">
-        <span className="text-muted-foreground">
-          Subtotal
-        </span>
+          {isLoadingQuote ? (
+            <p className="text-sm text-muted-foreground">
+              Calculating delivery...
+            </p>
+          ) : quoteError ? (
+            <div className="rounded-md border p-3 text-sm text-red-600">
+              {quoteError}
+            </div>
+          ) : quote ? (
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">
+                  Subtotal
+                </span>
 
-        <span>
-          ${quote.subtotal.toFixed(2)}
-        </span>
-      </div>
+                <span>
+                  $
+                  {quote.subtotal.toFixed(
+                    2
+                  )}
+                </span>
+              </div>
 
-      <div className="flex justify-between">
-        <span className="text-muted-foreground">
-          Delivery distance
-        </span>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">
+                  Delivery distance
+                </span>
 
-        <span>
-          {quote.distanceKm.toFixed(1)} km
-        </span>
-      </div>
+                <span>
+                  {quote.distanceKm.toFixed(
+                    1
+                  )}{" "}
+                  km
+                </span>
+              </div>
 
-      <div className="flex justify-between">
-        <span className="text-muted-foreground">
-          Delivery fee
-        </span>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">
+                  Delivery fee
+                </span>
 
-        <span>
-          ${quote.deliveryFee.toFixed(2)}
-        </span>
-      </div>
+                <span>
+                  $
+                  {quote.deliveryFee.toFixed(
+                    2
+                  )}
+                </span>
+              </div>
 
-      <div className="border-t pt-3">
-        <div className="flex justify-between text-lg font-bold">
-          <span>Total</span>
+              <div className="border-t pt-3">
+                <div className="flex justify-between text-lg font-bold">
+                  <span>Total</span>
 
-          <span>
-            ${quote.total.toFixed(2)}
-          </span>
-        </div>
-      </div>
-    </div>
-  ) : (
-    <p className="text-sm text-muted-foreground">
-      Select a delivery address to calculate your total.
-    </p>
-  )}
-</div>
+                  <span>
+                    $
+                    {quote.total.toFixed(
+                      2
+                    )}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Select a delivery address to calculate your total.
+            </p>
+          )}
         </div>
 
         {error && (
@@ -500,26 +536,27 @@ export function CheckoutClient({
         )}
 
         <button
-  type="button"
-  onClick={handlePlaceOrder}
-  disabled={
-    isSubmitting ||
-    isLoadingQuote ||
-    addresses.length === 0 ||
-    !quote
-  }
-  className="mt-6 w-full rounded-md bg-foreground px-5 py-3 font-medium text-background disabled:cursor-not-allowed disabled:opacity-50"
->
-  {isSubmitting
-    ? "Placing order..."
-    : isLoadingQuote
-      ? "Calculating..."
-      : quote
-        ? `Place Order · $${quote.total.toFixed(
-            2
-          )}`
-        : "Place Order"}
-</button>
+          type="button"
+          onClick={handlePlaceOrder}
+          disabled={
+            isSubmitting ||
+            isLoadingQuote ||
+            addresses.length ===
+              0 ||
+            !quote
+          }
+          className="mt-6 w-full rounded-md bg-foreground px-5 py-3 font-medium text-background disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {isSubmitting
+            ? "Placing order..."
+            : isLoadingQuote
+              ? "Calculating..."
+              : quote
+                ? `Place Order · $${quote.total.toFixed(
+                    2
+                  )}`
+                : "Place Order"}
+        </button>
       </aside>
     </div>
   );
