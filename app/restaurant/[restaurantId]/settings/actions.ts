@@ -20,6 +20,8 @@ export type RestaurantSettingsState = {
     area?: string[];
     logo?: string[];
     coverImage?: string[];
+    latitude?: string[];
+    longitude?: string[];
   };
 };
 
@@ -40,6 +42,8 @@ export async function updateRestaurantSettings(
     area: formData.get("area"),
     logo: formData.get("logo"),
     coverImage: formData.get("coverImage"),
+    latitude: formData.get("latitude"),
+    longitude: formData.get("longitude"),
   });
 
   if (!result.success) {
@@ -66,6 +70,8 @@ export async function updateRestaurantSettings(
       area: data.area || null,
       logo: data.logo || null,
       coverImage: data.coverImage || null,
+      latitude: result.data.latitude,
+      longitude: result.data.longitude,
     },
   });
 

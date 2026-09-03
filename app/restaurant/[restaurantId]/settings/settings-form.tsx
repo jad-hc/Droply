@@ -4,6 +4,10 @@ import { useActionState } from "react";
 
 import { ImageUpload } from "@/components/restaurant/image-upload";
 
+import { useState } from "react";
+
+import { LocationPickerWrapper } from "@/components/location-picker-wrapper";
+
 import {
   RestaurantSettingsState,
   updateRestaurantSettings,
@@ -20,6 +24,12 @@ type Restaurant = {
   area: string | null;
   logo: string | null;
   coverImage: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  deliveryRadiusKm: number;
+  baseDeliveryFee: unknown;
+  deliveryFeePerKm: unknown;
+  minimumOrder: unknown;
 };
 
 const initialState: RestaurantSettingsState = {
@@ -39,6 +49,16 @@ export function SettingsForm({
 
   const [state, formAction, isPending] =
     useActionState(action, initialState);
+
+  const [latitude, setLatitude] =
+  useState<number | null>(
+    restaurant.latitude ?? null
+  );
+
+  const [longitude, setLongitude] =
+  useState<number | null>(
+    restaurant.longitude ?? null
+  );
 
   return (
     <form
@@ -190,6 +210,130 @@ export function SettingsForm({
           />
         </div>
       </div>
+
+      <div className="space-y-3">
+  <div>
+    <h2 className="font-medium">
+      Restaurant Location
+    </h2>
+
+    <p className="text-sm text-muted-foreground">
+      Select the exact restaurant location for delivery calculations.
+    </p>
+  </div>
+
+  <LocationPickerWrapper
+    latitude={latitude}
+    longitude={longitude}
+    onChange={(
+      newLatitude,
+      newLongitude
+    ) => {
+      setLatitude(newLatitude);
+      setLongitude(newLongitude);
+    }}
+  />
+
+  <input
+    type="hidden"
+    name="latitude"
+    value={latitude ?? ""}
+  />
+
+  <input
+    type="hidden"
+    name="longitude"
+    value={longitude ?? ""}
+  />
+
+  {state.errors?.latitude && (
+    <p className="text-sm text-red-500">
+      Please select the restaurant location.
+    </p>
+  )}
+
+  {state.errors?.longitude && (
+    <p className="text-sm text-red-500">
+      Please select the restaurant location.
+    </p>
+  )}
+</div>
+
+<div className="rounded-xl border p-5">
+  <h2 className="text-lg font-semibold">
+    Delivery Settings
+  </h2>
+
+  <div className="mt-5 grid gap-4 md:grid-cols-2">
+    <div>
+      <label className="text-sm font-medium">
+        Delivery radius (km)
+      </label>
+
+      <input
+        type="number"
+        name="deliveryRadiusKm"
+        step="0.1"
+        min="0"
+        defaultValue={
+          restaurant.deliveryRadiusKm
+        }
+        className="mt-2 w-full rounded-md border px-3 py-2"
+      />
+    </div>
+
+    <div>
+      <label className="text-sm font-medium">
+        Minimum order ($)
+      </label>
+
+      <input
+        type="number"
+        name="minimumOrder"
+        step="0.01"
+        min="0"
+        defaultValue={Number(
+          restaurant.minimumOrder
+        )}
+        className="mt-2 w-full rounded-md border px-3 py-2"
+      />
+    </div>
+
+    <div>
+      <label className="text-sm font-medium">
+        Base delivery fee ($)
+      </label>
+
+      <input
+        type="number"
+        name="baseDeliveryFee"
+        step="0.01"
+        min="0"
+        defaultValue={Number(
+          restaurant.baseDeliveryFee
+        )}
+        className="mt-2 w-full rounded-md border px-3 py-2"
+      />
+    </div>
+
+    <div>
+      <label className="text-sm font-medium">
+        Additional fee per km ($)
+      </label>
+
+      <input
+        type="number"
+        name="deliveryFeePerKm"
+        step="0.01"
+        min="0"
+        defaultValue={Number(
+          restaurant.deliveryFeePerKm
+        )}
+        className="mt-2 w-full rounded-md border px-3 py-2"
+      />
+    </div>
+  </div>
+</div>
 
       {state.message && (
         <p

@@ -45,6 +45,36 @@ export const restaurantSettingsSchema = z.object({
     .url()
     .optional()
     .or(z.literal("")),
+
+  latitude: z.coerce
+    .number()
+    .min(-90)
+    .max(90),
+
+  longitude: z.coerce
+    .number()
+    .min(-180)
+    .max(180),
+
+  deliveryRadiusKm: z.coerce
+  .number()
+  .positive()
+  .max(100),
+
+  baseDeliveryFee: z.coerce
+  .number()
+  .min(0)
+  .max(1000),
+
+  deliveryFeePerKm: z.coerce
+  .number()
+  .min(0)
+  .max(1000),
+
+  minimumOrder: z.coerce
+  .number()
+  .min(0)
+  .max(100000),
 });
 
 export type RestaurantSettingsInput = z.infer<

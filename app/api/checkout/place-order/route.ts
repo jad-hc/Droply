@@ -5,6 +5,7 @@ import {
 
 import prisma from "@/lib/prisma";
 import { requireUser } from "@/lib/auth-guard";
+import { calculateDistanceKm } from "@/lib/distance";
 
 type CheckoutItem = {
   menuItemId: string;
@@ -30,8 +31,16 @@ export async function POST(
   request: NextRequest
 ) {
   try {
+    // ---------------------------------
+    // 1. AUTHENTICATE CUSTOMER
+    // ---------------------------------
+
     const user =
       await requireUser();
+
+    // ---------------------------------
+    // 2. READ CHECKOUT REQUEST
+    // ---------------------------------
 
     const body =
       (await request.json()) as CheckoutBody;
@@ -66,9 +75,9 @@ export async function POST(
       );
     }
 
-    // -----------------------
-    // VERIFY ADDRESS
-    // -----------------------
+    // ---------------------------------
+    // 3. VERIFY CUSTOMER ADDRESS
+    // ---------------------------------
 
     const address =
       await prisma.address.findFirst({
@@ -90,9 +99,27 @@ export async function POST(
       );
     }
 
-    // -----------------------
-    // BASIC CART VALIDATION
-    // -----------------------
+    // NEW:
+    // Customer address must have coordinates.
+
+    if (
+      address.latitude == null ||
+      address.longitude == null
+    ) {
+      return NextResponse.json(
+        {
+          message:
+            "Please select a delivery location for your address.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    // ---------------------------------
+    // 4. BASIC CART VALIDATION
+    // ---------------------------------
 
     for (const cartItem of body.items) {
       if (
@@ -118,7 +145,8 @@ export async function POST(
       }
     }
 
-    // Remove duplicate item IDs
+    // Remove duplicate menu-item IDs.
+
     const menuItemIds = [
       ...new Set(
         body.items.map(
@@ -128,9 +156,9 @@ export async function POST(
       ),
     ];
 
-    // -----------------------
-    // LOAD REAL DATA
-    // -----------------------
+    // ---------------------------------
+    // 5. LOAD REAL MENU DATA FROM DB
+    // ---------------------------------
 
     const menuItems =
       await prisma.menuItem.findMany({
@@ -147,8 +175,19 @@ export async function POST(
             select: {
               id: true,
               name: true,
+
               isActive: true,
               isApproved: true,
+
+              // NEW
+              latitude: true,
+              longitude: true,
+
+              // NEW
+              deliveryRadiusKm: true,
+              baseDeliveryFee: true,
+              deliveryFeePerKm: true,
+              minimumOrder: true,
             },
           },
 
@@ -175,9 +214,10 @@ export async function POST(
       );
     }
 
-    // -----------------------
-    // ONE RESTAURANT ONLY
-    // -----------------------
+    // ---------------------------------
+    // 6. MAKE SURE CART IS FROM
+    //    ONE RESTAURANT
+    // ---------------------------------
 
     const restaurantIds =
       new Set(
@@ -204,6 +244,10 @@ export async function POST(
     const restaurant =
       menuItems[0].restaurant;
 
+    // ---------------------------------
+    // 7. VERIFY RESTAURANT
+    // ---------------------------------
+
     if (
       !restaurant.isActive ||
       !restaurant.isApproved
@@ -219,9 +263,27 @@ export async function POST(
       );
     }
 
-    // -----------------------
-    // BUILD SECURE ORDER
-    // -----------------------
+    // NEW:
+    // Restaurant must also have coordinates.
+
+    if (
+      restaurant.latitude == null ||
+      restaurant.longitude == null
+    ) {
+      return NextResponse.json(
+        {
+          message:
+            "Restaurant delivery location has not been configured.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    // ---------------------------------
+    // 8. BUILD SECURE ORDER ITEMS
+    // ---------------------------------
 
     let subtotalCents = 0;
 
@@ -247,11 +309,15 @@ export async function POST(
         );
       }
 
-      // Remove duplicate option IDs
+      // Remove duplicate selected option IDs.
+
       const selectedOptionIds =
         new Set(
           cartItem.selectedOptionIds
         );
+
+      // Build list of every valid option
+      // belonging to this menu item.
 
       const validOptionIds =
         new Set(
@@ -264,8 +330,8 @@ export async function POST(
           )
         );
 
-      // Reject option IDs that don't
-      // belong to this menu item.
+      // Reject fake option IDs.
+
       for (const optionId of selectedOptionIds) {
         if (
           !validOptionIds.has(
@@ -288,9 +354,7 @@ export async function POST(
 
       let optionPriceCents = 0;
 
-      // -----------------------
-      // VALIDATE EACH GROUP
-      // -----------------------
+      // Validate each option group.
 
       for (const group of menuItem.optionGroups) {
         const selectedOptions =
@@ -331,7 +395,9 @@ export async function POST(
             toCents(price);
 
           optionSnapshots.push({
-            groupId: group.id,
+            groupId:
+              group.id,
+
             groupName:
               group.name,
 
@@ -395,17 +461,101 @@ export async function POST(
       });
     }
 
-    // Temporary fixed delivery fee.
-    // Later we'll calculate this from distance.
-    const deliveryFeeCents = 250;
+    // ---------------------------------
+    // 9. CHECK MINIMUM ORDER
+    // ---------------------------------
+
+    const minimumOrderCents =
+      toCents(
+        Number(
+          restaurant.minimumOrder
+        )
+      );
+
+    if (
+      subtotalCents <
+      minimumOrderCents
+    ) {
+      return NextResponse.json(
+        {
+          message:
+            `Minimum order is $${Number(
+              restaurant.minimumOrder
+            ).toFixed(2)}.`,
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    // ---------------------------------
+    // 10. CALCULATE DELIVERY DISTANCE
+    // ---------------------------------
+
+    const distanceKm =
+      calculateDistanceKm(
+        restaurant.latitude,
+        restaurant.longitude,
+        address.latitude,
+        address.longitude
+      );
+
+    // ---------------------------------
+    // 11. CHECK DELIVERY RADIUS
+    // ---------------------------------
+
+    if (
+      distanceKm >
+      restaurant.deliveryRadiusKm
+    ) {
+      return NextResponse.json(
+        {
+          message:
+            `This address is ${distanceKm.toFixed(
+              1
+            )} km away. The restaurant only delivers within ${restaurant.deliveryRadiusKm.toFixed(
+              1
+            )} km.`,
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    // ---------------------------------
+    // 12. CALCULATE DELIVERY FEE
+    // ---------------------------------
+
+    const baseDeliveryFee =
+      Number(
+        restaurant.baseDeliveryFee
+      );
+
+    const feePerKm =
+      Number(
+        restaurant.deliveryFeePerKm
+      );
+
+    const deliveryFee =
+      baseDeliveryFee +
+      distanceKm * feePerKm;
+
+    const deliveryFeeCents =
+      toCents(deliveryFee);
+
+    // ---------------------------------
+    // 13. CALCULATE FINAL TOTAL
+    // ---------------------------------
 
     const totalCents =
       subtotalCents +
       deliveryFeeCents;
 
-    // -----------------------
-    // CREATE ORDER
-    // -----------------------
+    // ---------------------------------
+    // 14. CREATE ORDER
+    // ---------------------------------
 
     const order =
       await prisma.order.create({
@@ -469,11 +619,36 @@ export async function POST(
         },
       });
 
+    // ---------------------------------
+    // 15. SUCCESS RESPONSE
+    // ---------------------------------
+
     return NextResponse.json({
       success: true,
 
       orderId:
         order.id,
+
+      // Useful for debugging/testing.
+      distanceKm:
+        Number(
+          distanceKm.toFixed(2)
+        ),
+
+      deliveryFee:
+        fromCents(
+          deliveryFeeCents
+        ),
+
+      subtotal:
+        fromCents(
+          subtotalCents
+        ),
+
+      total:
+        fromCents(
+          totalCents
+        ),
     });
   } catch (error) {
     console.error(

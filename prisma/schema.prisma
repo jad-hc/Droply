@@ -97,6 +97,11 @@ model Restaurant {
   latitude  Float?
   longitude Float?
 
+  deliveryRadiusKm Float   @default(10)
+  baseDeliveryFee  Decimal @default(2) @db.Decimal(10, 2)
+  deliveryFeePerKm Decimal @default(0.5) @db.Decimal(10, 2)
+  minimumOrder     Decimal @default(0) @db.Decimal(10, 2)
+
   ownerId String
   owner   User   @relation("RestaurantOwner", fields: [ownerId], references: [id], onDelete: Restrict)
 
