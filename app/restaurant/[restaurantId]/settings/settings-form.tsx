@@ -27,9 +27,9 @@ type Restaurant = {
   latitude: number | null;
   longitude: number | null;
   deliveryRadiusKm: number;
-  baseDeliveryFee: unknown;
-  deliveryFeePerKm: unknown;
-  minimumOrder: unknown;
+  baseDeliveryFee: number;
+  deliveryFeePerKm: number;
+  minimumOrder: number;
 };
 
 const initialState: RestaurantSettingsState = {
@@ -292,9 +292,9 @@ export function SettingsForm({
         name="minimumOrder"
         step="0.01"
         min="0"
-        defaultValue={Number(
+        defaultValue={
           restaurant.minimumOrder
-        )}
+        }
         className="mt-2 w-full rounded-md border px-3 py-2"
       />
     </div>
@@ -309,9 +309,9 @@ export function SettingsForm({
         name="baseDeliveryFee"
         step="0.01"
         min="0"
-        defaultValue={Number(
+        defaultValue={
           restaurant.baseDeliveryFee
-        )}
+        }
         className="mt-2 w-full rounded-md border px-3 py-2"
       />
     </div>
@@ -326,9 +326,9 @@ export function SettingsForm({
         name="deliveryFeePerKm"
         step="0.01"
         min="0"
-        defaultValue={Number(
+        defaultValue={
           restaurant.deliveryFeePerKm
-        )}
+        }
         className="mt-2 w-full rounded-md border px-3 py-2"
       />
     </div>

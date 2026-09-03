@@ -7,6 +7,10 @@ import prisma from "@/lib/prisma";
 import { requireUser } from "@/lib/auth-guard";
 import { calculateDistanceKm } from "@/lib/distance";
 
+import {
+  getRestaurantOpenStatus,
+} from "@/lib/restaurant-hours";
+
 type CheckoutItem = {
   menuItemId: string;
   quantity: number;
@@ -146,16 +150,28 @@ export async function POST(
             select: {
               id: true,
               name: true,
+            
               isActive: true,
               isApproved: true,
-
+            
               latitude: true,
               longitude: true,
-
+            
               deliveryRadiusKm: true,
               baseDeliveryFee: true,
               deliveryFeePerKm: true,
               minimumOrder: true,
+            
+              timezone: true,
+            
+             openingHours: {
+                select: {
+                  day: true,
+                  isClosed: true,
+                  openTime: true,
+                  closeTime: true,
+               },
+              },
             },
           },
 
@@ -225,6 +241,28 @@ export async function POST(
         }
       );
     }
+
+    const openStatus =
+      getRestaurantOpenStatus({
+        openingHours:
+          restaurant.openingHours,
+
+        timezone:
+        restaurant.timezone,
+      });
+
+if (!openStatus.isOpen) {
+  return NextResponse.json(
+    {
+      message:
+        openStatus.reason ??
+        "Restaurant is currently closed.",
+    },
+    {
+      status: 400,
+    }
+  );
+}
 
     if (
       restaurant.latitude == null ||
@@ -483,3 +521,6 @@ export async function POST(
     );
   }
 }
+
+/* opening hours for restaurant */
+

@@ -97,6 +97,10 @@ model Restaurant {
   latitude  Float?
   longitude Float?
 
+  timezone String @default("Asia/Beirut")
+
+  openingHours RestaurantOpeningHour[]
+
   deliveryRadiusKm Float   @default(10)
   baseDeliveryFee  Decimal @default(2) @db.Decimal(10, 2)
   deliveryFeePerKm Decimal @default(0.5) @db.Decimal(10, 2)
@@ -386,5 +390,36 @@ model OrderItem {
 }
 
 /**
- * Driver model
+ * Opening hours for restaurants
  */
+
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+model RestaurantOpeningHour {
+  id String @id @default(cuid())
+
+  day DayOfWeek
+
+  isClosed Boolean @default(false)
+
+  // Store as HH:mm, for example "09:00", "23:30"
+  openTime  String?
+  closeTime String?
+
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([restaurantId, day])
+  @@index([restaurantId])
+}

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 
 import prisma from "@/lib/prisma";
 import { MenuItemCard } from "./menu-item-card";
+import { getRestaurantOpenStatus } from "@/lib/restaurant-hours";
 
 type Props = {
   params: Promise<{
@@ -15,42 +16,51 @@ export default async function PublicRestaurantPage({
   const { slug } = await params;
 
   const restaurant = await prisma.restaurant.findUnique({
-    where: {
-      slug,
+  where: {
+    slug,
+  },
+
+  include: {
+    openingHours: {
+      select: {
+        day: true,
+        isClosed: true,
+        openTime: true,
+        closeTime: true,
+      },
     },
 
-    include: {
-      categories: {
-        where: {
-          isActive: true,
-        },
+    categories: {
+      where: {
+        isActive: true,
+      },
 
-        orderBy: {
-          sortOrder: "asc",
-        },
+      orderBy: {
+        sortOrder: "asc",
+      },
 
-        include: {
-          items: {
-            where: {
-              isAvailable: true,
-            },
+      include: {
+        items: {
+          where: {
+            isAvailable: true,
+          },
 
-            orderBy: {
-              createdAt: "desc",
-            },
+          orderBy: {
+            createdAt: "desc",
+          },
 
-            include: {
-              optionGroups: {
-                include: {
-                  options: true,
-                },
+          include: {
+            optionGroups: {
+              include: {
+                options: true,
               },
             },
           },
         },
       },
     },
-  });
+  },
+});
 
   if (
     !restaurant ||
@@ -59,6 +69,15 @@ export default async function PublicRestaurantPage({
   ) {
     notFound();
   }
+
+  const openStatus =
+  getRestaurantOpenStatus({
+    openingHours:
+      restaurant.openingHours,
+
+    timezone:
+      restaurant.timezone,
+  });
 
   return (
     <main>
@@ -118,6 +137,17 @@ export default async function PublicRestaurantPage({
                     {category.description}
                   </p>
                 )}
+                <span
+                  className={`inline-flex rounded-full px-3 py-1 text-sm ${
+                  openStatus.isOpen
+                  ? "bg-green-100 text-green-700"
+                  : "bg-red-100 text-red-700"
+                }`}
+                >
+                  {openStatus.isOpen
+                    ? "Open"
+                    : "Closed"}
+                </span>
               </div>
 
               {category.items.length === 0 ? (
@@ -128,6 +158,7 @@ export default async function PublicRestaurantPage({
                 <div className="grid gap-5 md:grid-cols-2">
                   {category.items.map((item) => (
                     <MenuItemCard
+                      restaurantOpen={openStatus.isOpen}
                       key={item.id}
                       item={{
                         id: item.id,

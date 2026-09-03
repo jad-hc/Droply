@@ -1,5 +1,7 @@
 import { requireRestaurantAccess } from "@/lib/restaurant-access";
 import { SettingsForm } from "./settings-form";
+import prisma from "@/lib/prisma";
+import { OpeningHoursForm } from "./opening-hours-form";
 
 type Props = {
   params: Promise<{
@@ -17,6 +19,13 @@ export default async function RestaurantSettingsPage({
       restaurantId
     );
 
+  const openingHours =
+  await prisma.restaurantOpeningHour.findMany({
+    where: {
+      restaurantId,
+    },
+  });
+
   return (
     <main className="mx-auto max-w-3xl px-4 py-10">
       <div className="mb-8">
@@ -30,8 +39,35 @@ export default async function RestaurantSettingsPage({
       </div>
 
       <SettingsForm
-        restaurant={restaurant}
+  restaurant={{
+    ...restaurant,
+
+    baseDeliveryFee:
+      Number(
+        restaurant.baseDeliveryFee
+      ),
+
+    deliveryFeePerKm:
+      Number(
+        restaurant.deliveryFeePerKm
+      ),
+
+    minimumOrder:
+      Number(
+        restaurant.minimumOrder
+      ),
+  }}
+/>
+      <div className="mt-8">
+      <OpeningHoursForm
+        restaurantId={
+        restaurant.id
+      }
+      openingHours={
+        openingHours
+      }
       />
+</div>
     </main>
   );
 }
