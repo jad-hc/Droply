@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import { requireRestaurantAccess } from "@/lib/restaurant-access";
 import { OrderStatusControls } from "./order-status-controls";
+import Link from "next/link";
 
 import { AutoRefresh } from "@/components/auto-refresh";
 
@@ -50,6 +51,26 @@ export default async function RestaurantOrdersPage({
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
       <AutoRefresh interval={3000} />
+
+      <div className="flex flex-wrap items-center justify-between gap-4">
+  <div>
+    <h1 className="text-3xl font-bold">
+      Orders
+    </h1>
+
+    <p className="mt-2 text-muted-foreground">
+      Manage incoming orders for{" "}
+      {restaurant.name}.
+    </p>
+  </div>
+
+  <Link
+    href={`/restaurant/${restaurantId}/orders/history`}
+    className="rounded-md border px-4 py-2"
+  >
+    Order History
+  </Link>
+</div>
       
       <div>
         <h1 className="text-3xl font-bold">

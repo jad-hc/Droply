@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import { requireRole } from "@/lib/auth-guard";
 import { UserRole } from "@/app/generated/prisma/client";
+import Link from "next/link";
 
 import { setDriverAvailability } from "./actions";
 import { AcceptDeliveryButton } from "./accept-delivery-button";
@@ -111,6 +112,14 @@ export default async function DriverDashboardPage() {
             </strong>
           </p>
         </div>
+
+        <div className="flex gap-3">
+    <Link
+      href="/driver/deliveries"
+      className="rounded-md border px-4 py-2"
+    >
+      Delivery History
+    </Link>
 
         {!activeDelivery && (
           <div className="flex gap-3">
