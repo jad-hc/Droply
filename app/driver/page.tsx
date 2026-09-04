@@ -112,6 +112,7 @@ export default async function DriverDashboardPage() {
             </strong>
           </p>
         </div>
+        </div>
 
         <div className="flex gap-3">
     <Link
