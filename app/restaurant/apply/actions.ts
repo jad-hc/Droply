@@ -85,7 +85,7 @@ export async function createRestaurantAction(
         ownerId: user.id,
 
         isApproved: false,
-        isActive: true,
+        isActive: false,
       },
     });
 
