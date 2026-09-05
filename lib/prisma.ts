@@ -19,7 +19,7 @@ const adapter =
       process.env.DATABASE_URL!,
 
     // Important for Vercel/serverless.
-    max: 1,
+    max: 3,
 
     connectionTimeoutMillis:
       10_000,

@@ -98,7 +98,7 @@ export default async function DriverDashboardPage() {
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-10">
-      <AutoRefresh interval={3000} />
+      <AutoRefresh interval={10000} />
 
       <div className="flex items-center justify-between">
         <div>

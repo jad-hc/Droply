@@ -102,7 +102,7 @@ export default async function OrderPage({
       {/* HEADER */}
       {order.status !== "DELIVERED" &&
         order.status !== "CANCELLED" && (
-          <AutoRefresh interval={3000} />
+          <AutoRefresh interval={10000} />
         )}
 
       <div className="flex flex-wrap items-start justify-between gap-5">

@@ -114,7 +114,7 @@ export async function acceptDelivery(
   revalidatePath("/driver");
 }
 
-
+/* */
 export async function updateDeliveryStatus(
   orderId: string,
   newStatus:
@@ -122,82 +122,87 @@ export async function updateDeliveryStatus(
     | "ON_THE_WAY"
     | "DELIVERED"
 ) {
-  const user =
-    await requireRole(
-      UserRole.DRIVER
-    );
+  const user = await requireRole(
+    UserRole.DRIVER
+  );
 
   const driver =
     await prisma.driverProfile.findUnique({
       where: {
         userId: user.id,
       },
-    });
 
-  if (!driver) {
-    throw new Error(
-      "Driver not found."
-    );
-  }
-
-  const order =
-    await prisma.order.findFirst({
-      where: {
-        id: orderId,
-        driverId: driver.id,
+      select: {
+        id: true,
+        isApproved: true,
       },
     });
 
-  if (!order) {
+  if (
+    !driver ||
+    !driver.isApproved
+  ) {
     throw new Error(
-      "Delivery not found."
+      "Approved driver account required."
     );
   }
 
-  const transitions = {
-    DRIVER_ASSIGNED:
-      "PICKED_UP",
+  const transitionMap = {
+    PICKED_UP: {
+      requiredCurrentStatus:
+        "DRIVER_ASSIGNED",
+    },
 
-    PICKED_UP:
-      "ON_THE_WAY",
+    ON_THE_WAY: {
+      requiredCurrentStatus:
+        "PICKED_UP",
+    },
 
-    ON_THE_WAY:
-      "DELIVERED",
+    DELIVERED: {
+      requiredCurrentStatus:
+        "ON_THE_WAY",
+    },
   } as const;
 
-  const expected =
-    transitions[
-      order.status as keyof typeof transitions
-    ];
-
-  if (expected !== newStatus) {
-    throw new Error(
-      `Cannot change ${order.status} to ${newStatus}.`
-    );
-  }
+  const requiredStatus =
+    transitionMap[newStatus]
+      .requiredCurrentStatus;
 
   await prisma.$transaction(
     async (tx) => {
-      await tx.order.update({
-        where: {
-          id: order.id,
-        },
+      const updated =
+        await tx.order.updateMany({
+          where: {
+            id: orderId,
 
-        data: {
-          status:
-            newStatus,
+            driverId:
+              driver.id,
 
-          ...(newStatus ===
-            "DELIVERED" &&
-          order.paymentMethod ===
-            "CASH"
-            ? {
-                paymentStatus:
-                  "PAID",
-              }
-            : {}),
-        },
-      });
+            status:
+              requiredStatus,
+          },
+
+          data: {
+            status:
+              newStatus,
+
+            ...(newStatus ===
+            "DELIVERED"
+              ? {
+                  paymentStatus:
+                    "PAID",
+                }
+              : {}),
+          },
+        });
+
+      if (
+        updated.count !== 1
+      ) {
+        throw new Error(
+          "Delivery status changed or the delivery does not belong to you."
+        );
+      }
 
       if (
         newStatus ===
@@ -205,7 +210,8 @@ export async function updateDeliveryStatus(
       ) {
         await tx.driverProfile.update({
           where: {
-            id: driver.id,
+            id:
+              driver.id,
           },
 
           data: {
@@ -214,8 +220,17 @@ export async function updateDeliveryStatus(
           },
         });
       }
+    },
+    {
+      timeout: 5000,
     }
   );
 
-  revalidatePath("/driver");
+  revalidatePath(
+    "/driver"
+  );
+
+  revalidatePath(
+    `/orders/${orderId}`
+  );
 }
