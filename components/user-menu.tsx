@@ -2,6 +2,7 @@
 
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
+import { NotificationLink } from "./notification-link";
 
 export function UserMenu() {
   const router = useRouter();
@@ -29,6 +30,7 @@ export function UserMenu() {
 
   return (
     <div className="flex items-center gap-4">
+      <NotificationLink />
       <span>{session.user.name}</span>
 
       <button onClick={handleLogout} className="rounded-md bg-red-500 px-3 py-1 text-sm text-white hover:bg-red-600">

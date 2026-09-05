@@ -10,6 +10,7 @@ import { calculateDistanceKm } from "@/lib/distance";
 import {
   getRestaurantOpenStatus,
 } from "@/lib/restaurant-hours";
+import { createNotifications } from "@/lib/notifications";
 
 type CheckoutItem = {
   menuItemId: string;
@@ -658,6 +659,42 @@ if (!openStatus.isOpen) {
           },
         },
       });
+
+      
+/* Notify restaurant when customer orders */
+
+const restaurantMembers =
+  await prisma.restaurantMember.findMany({
+    where: {
+      restaurantId:
+        restaurant.id,
+    },
+
+    select: {
+      userId: true,
+    },
+  });
+
+  await createNotifications(
+  restaurantMembers.map(
+    (member) => ({
+      userId:
+        member.userId,
+
+      title:
+        "New order",
+
+      message:
+        `A new order has been placed at ${restaurant.name}.`,
+
+      href:
+        `/restaurant/${restaurant.id}/orders`,
+
+      type:
+        "ORDER",
+    })
+  )
+);
 
     // ---------------------------------
     // 15. SUCCESS RESPONSE
