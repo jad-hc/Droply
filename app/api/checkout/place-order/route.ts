@@ -649,6 +649,9 @@ if (!openStatus.isOpen) {
           instructions:
             address.instructions,
 
+          deliveryLatitude: address.latitude,
+          deliveryLongitude: address.longitude,
+
           items: {
             create:
               orderItems,
