@@ -21,6 +21,12 @@ type Props = {
     | "CANCELLED";
 };
 
+type AllowedRestaurantOrderStatus =
+  | "RESTAURANT_ACCEPTED"
+  | "PREPARING"
+  | "READY_FOR_PICKUP"
+  | "CANCELLED";
+
 export function OrderStatusControls({
   restaurantId,
   orderId,
@@ -30,7 +36,7 @@ export function OrderStatusControls({
     useTransition();
 
   function updateStatus(
-    newStatus: string
+    newStatus: AllowedRestaurantOrderStatus
   ) {
     startTransition(async () => {
       try {
@@ -67,7 +73,9 @@ export function OrderStatusControls({
         <button
           disabled={isPending}
           onClick={() =>
-            updateStatus("CANCELLED")
+            updateStatus(
+              "CANCELLED"
+            )
           }
           className="rounded-md border px-4 py-2 text-red-500 disabled:opacity-50"
         >
@@ -82,19 +90,37 @@ export function OrderStatusControls({
     "RESTAURANT_ACCEPTED"
   ) {
     return (
-      <button
-        disabled={isPending}
-        onClick={() =>
-          updateStatus("PREPARING")
-        }
-        className="rounded-md bg-foreground px-4 py-2 text-background disabled:opacity-50"
-      >
-        Start Preparing
-      </button>
+      <div className="flex gap-3">
+        <button
+          disabled={isPending}
+          onClick={() =>
+            updateStatus(
+              "PREPARING"
+            )
+          }
+          className="rounded-md bg-foreground px-4 py-2 text-background disabled:opacity-50"
+        >
+          Start Preparing
+        </button>
+
+        <button
+          disabled={isPending}
+          onClick={() =>
+            updateStatus(
+              "CANCELLED"
+            )
+          }
+          className="rounded-md border px-4 py-2 text-red-500 disabled:opacity-50"
+        >
+          Cancel Order
+        </button>
+      </div>
     );
   }
 
-  if (status === "PREPARING") {
+  if (
+    status === "PREPARING"
+  ) {
     return (
       <button
         disabled={isPending}
