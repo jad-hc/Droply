@@ -6,6 +6,7 @@ import { requireUser } from "@/lib/auth-guard";
 
 import { AutoRefresh } from "@/components/auto-refresh";
 import { DeliveryTrackingMapWrapper } from "@/components/delivery-tracking-map-wrapper";
+import { calculateDeliveryEta } from "@/lib/delivery-eta";
 
 type Props = {
   params: Promise<{
@@ -96,6 +97,26 @@ export default async function OrderPage({
   const currentStep = ORDER_STEPS.indexOf(
     order.status as (typeof ORDER_STEPS)[number]
   );
+
+  const deliveryEta =
+  order.driver?.currentLatitude != null &&
+  order.driver?.currentLongitude != null &&
+  order.deliveryLatitude != null &&
+  order.deliveryLongitude != null
+    ? calculateDeliveryEta({
+        driverLatitude:
+          order.driver.currentLatitude,
+
+        driverLongitude:
+          order.driver.currentLongitude,
+
+        deliveryLatitude:
+          order.deliveryLatitude,
+
+        deliveryLongitude:
+          order.deliveryLongitude,
+      })
+    : null;
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10">
@@ -459,6 +480,32 @@ export default async function OrderPage({
           Follow your driver during
           the delivery.
         </p>
+        {deliveryEta &&
+        (order.status === "PICKED_UP" ||
+          order.status === "ON_THE_WAY")
+         && (
+  <div className="mb-5 grid gap-4 sm:grid-cols-2">
+    <div className="rounded-lg bg-muted/50 p-4">
+      <p className="text-sm text-muted-foreground">
+        Driver distance
+      </p>
+
+      <p className="mt-1 text-xl font-semibold">
+        {deliveryEta.distanceKm.toFixed(1)} km
+      </p>
+    </div>
+
+    <div className="rounded-lg bg-muted/50 p-4">
+      <p className="text-sm text-muted-foreground">
+        Estimated arrival
+      </p>
+
+      <p className="mt-1 text-xl font-semibold">
+        ~{deliveryEta.estimatedMinutes} min
+      </p>
+    </div>
+  </div>
+)}
       </div>
 
       <div className="overflow-hidden rounded-xl">
