@@ -150,8 +150,9 @@ model DriverProfile {
   vehiclePlate  String?
   licenseNumber String?
 
-  currentLatitude  Float?
-  currentLongitude Float?
+  currentLatitude   Float?
+  currentLongitude  Float?
+  locationUpdatedAt DateTime?
 
   isApproved Boolean @default(false)
 
@@ -345,6 +346,9 @@ model Order {
   floor           String?
   apartment       String?
   instructions    String?
+
+  deliveryLatitude  Float?
+  deliveryLongitude Float?
 
   driverId String?
   driver   DriverProfile? @relation(fields: [driverId], references: [id], onDelete: SetNull)

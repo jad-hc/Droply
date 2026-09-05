@@ -8,6 +8,7 @@ import { AcceptDeliveryButton } from "./accept-delivery-button";
 import { ActiveDeliveryControls } from "./active-delivery-controls";
 
 import { AutoRefresh } from "@/components/auto-refresh";
+import { DriverLocationTracker } from "./driver-location-tracker";
 
 export default async function DriverDashboardPage() {
   const user =
@@ -194,6 +195,11 @@ export default async function DriverDashboardPage() {
           </p>
 
           <div className="mt-6">
+            <DriverLocationTracker
+              orderId={
+              activeDelivery.id
+              }
+            />
             {isActiveDeliveryStatus(activeDelivery.status) && (
               <ActiveDeliveryControls
                 orderId={activeDelivery.id}

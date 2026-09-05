@@ -5,6 +5,7 @@ import prisma from "@/lib/prisma";
 import { requireUser } from "@/lib/auth-guard";
 
 import { AutoRefresh } from "@/components/auto-refresh";
+import { DeliveryTrackingMapWrapper } from "@/components/delivery-tracking-map-wrapper";
 
 type Props = {
   params: Promise<{
@@ -67,6 +68,9 @@ export default async function OrderPage({
           address: true,
           city: true,
           area: true,
+
+          latitude: true,
+          longitude: true,
         },
       },
 
@@ -439,6 +443,79 @@ export default async function OrderPage({
           })}
         </div>
       </section>
+
+      {order.driver &&
+  order.restaurant.latitude != null &&
+  order.restaurant.longitude != null &&
+  order.deliveryLatitude != null &&
+  order.deliveryLongitude != null && (
+    <section className="mt-8 rounded-xl border p-6">
+      <div className="mb-5">
+        <h2 className="text-xl font-semibold">
+          Track Delivery
+        </h2>
+
+        <p className="mt-1 text-sm text-muted-foreground">
+          Follow your driver during
+          the delivery.
+        </p>
+      </div>
+
+      <div className="overflow-hidden rounded-xl">
+        <DeliveryTrackingMapWrapper
+          restaurant={{
+            latitude:
+              order.restaurant
+                .latitude,
+
+            longitude:
+              order.restaurant
+                .longitude,
+          }}
+
+          delivery={{
+            latitude:
+              order.deliveryLatitude,
+
+            longitude:
+              order.deliveryLongitude,
+          }}
+
+          driver={
+            order.driver
+              .currentLatitude !=
+                null &&
+            order.driver
+              .currentLongitude !=
+                null
+              ? {
+                  latitude:
+                    order.driver
+                      .currentLatitude,
+
+                  longitude:
+                    order.driver
+                      .currentLongitude,
+                }
+              : null
+          }
+        />
+      </div>
+
+      {order.driver
+        .locationUpdatedAt ? (
+        <p className="mt-3 text-xs text-muted-foreground">
+          Driver location updated{" "}
+          {order.driver.locationUpdatedAt.toLocaleTimeString()}
+        </p>
+      ) : (
+        <p className="mt-3 text-sm text-muted-foreground">
+          Waiting for the driver to
+          start sharing their location.
+        </p>
+      )}
+    </section>
+  )}
 
       {/* PAYMENT + TOTAL */}
 
