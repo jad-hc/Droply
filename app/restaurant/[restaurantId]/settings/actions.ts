@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-
 import prisma from "@/lib/prisma";
 import { requireRestaurantAccess } from "@/lib/restaurant-access";
 import { restaurantSettingsSchema } from "@/validations/restaurant-settings";
@@ -22,6 +21,11 @@ export type RestaurantSettingsState = {
     coverImage?: string[];
     latitude?: string[];
     longitude?: string[];
+    // Added the missing error definitions for the new fields
+    deliveryRadiusKm?: string[];
+    baseDeliveryFee?: string[];
+    deliveryFeePerKm?: string[];
+    minimumOrder?: string[];
   };
 };
 
@@ -30,6 +34,7 @@ export async function updateRestaurantSettings(
   previousState: RestaurantSettingsState,
   formData: FormData
 ): Promise<RestaurantSettingsState> {
+  // TIP: If it's still taking 3.4 seconds, wrap this in console.time("auth") to test it
   await requireRestaurantAccess(restaurantId);
 
   const result = restaurantSettingsSchema.safeParse({
@@ -44,6 +49,11 @@ export async function updateRestaurantSettings(
     coverImage: formData.get("coverImage"),
     latitude: formData.get("latitude"),
     longitude: formData.get("longitude"),
+    // Added the missing fields from FormData
+    deliveryRadiusKm: formData.get("deliveryRadiusKm"),
+    minimumOrder: formData.get("minimumOrder"),
+    baseDeliveryFee: formData.get("baseDeliveryFee"),
+    deliveryFeePerKm: formData.get("deliveryFeePerKm"),
   });
 
   if (!result.success) {
@@ -55,11 +65,11 @@ export async function updateRestaurantSettings(
 
   const data = result.data;
 
+  // TIP: If auth is fast, wrap this in console.time("prisma") to test database speed
   await prisma.restaurant.update({
     where: {
       id: restaurantId,
     },
-
     data: {
       name: data.name,
       description: data.description || null,
@@ -70,15 +80,19 @@ export async function updateRestaurantSettings(
       area: data.area || null,
       logo: data.logo || null,
       coverImage: data.coverImage || null,
-      latitude: result.data.latitude,
-      longitude: result.data.longitude,
+      latitude: data.latitude,
+      longitude: data.longitude,
+      // Pass the successfully parsed data to Prisma
+      deliveryRadiusKm: data.deliveryRadiusKm,
+      minimumOrder: data.minimumOrder,
+      baseDeliveryFee: data.baseDeliveryFee,
+      deliveryFeePerKm: data.deliveryFeePerKm,
     },
   });
 
+  // TIP: If Prisma and Auth are both fast, these revalidations are causing your 3.4s delay!
   revalidatePath(`/restaurant/${restaurantId}`);
-  revalidatePath(
-    `/restaurant/${restaurantId}/settings`
-  );
+  revalidatePath(`/restaurant/${restaurantId}/settings`);
 
   return {
     success: true,
