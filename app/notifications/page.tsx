@@ -7,6 +7,7 @@ import {
   markAllNotificationsRead,
   markNotificationRead,
 } from "./actions";
+import { AutoRefresh } from "@/components/auto-refresh";
 
 export const dynamic =
   "force-dynamic";
@@ -32,6 +33,7 @@ export default async function NotificationsPage() {
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-10">
+      <AutoRefresh interval={5000} />
       <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">
