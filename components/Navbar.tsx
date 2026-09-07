@@ -16,10 +16,10 @@ const Navbar = () => {
         {/* Navigation Links */}
         <div className="flex items-center space-x-6">
           <a 
-            href="/restaurants" 
+            href="/restaurant" 
             className="text-gray-300 hover:text-white font-medium transition-colors"
           >
-            Restaurants
+            Restaurant
           </a>
           <a 
             href="/restaurant" 
