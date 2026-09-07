@@ -41,13 +41,15 @@ model User {
   restaurantMemberships RestaurantMember[]
   driverProfile         DriverProfile?
 
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  emailVerified Boolean        @default(false)
-  sessions      Session[]
-  accounts      Account[]
-  orders        Order[]
-  notifications Notification[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  emailVerified     Boolean            @default(false)
+  sessions          Session[]
+  accounts          Account[]
+  orders            Order[]
+  notifications     Notification[]
+  restaurantReviews RestaurantReview[]
+  driverReviews     DriverReview[]
 
   @@map("user")
 }
@@ -115,6 +117,7 @@ model Restaurant {
   categories MenuCategory[]
   menuItems  MenuItem[]
   orders     Order[]
+  reviews    RestaurantReview[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -161,6 +164,7 @@ model DriverProfile {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   deliveries Order[]
+  reviews    DriverReview[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -360,7 +364,9 @@ model Order {
   restaurantId String
   restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Restrict)
 
-  items OrderItem[]
+  items            OrderItem[]
+  restaurantReview RestaurantReview?
+  driverReview     DriverReview?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -460,4 +466,52 @@ model Notification {
   @@index([userId])
   @@index([userId, isRead])
   @@index([createdAt])
+}
+
+/**
+ * Reviews
+ */
+
+model RestaurantReview {
+  id String @id @default(cuid())
+
+  rating  Int
+  comment String?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  orderId String @unique
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([restaurantId])
+  @@index([userId])
+}
+
+model DriverReview {
+  id String @id @default(cuid())
+
+  rating  Int
+  comment String?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  driverId String
+  driver   DriverProfile @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  orderId String @unique
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([driverId])
+  @@index([userId])
 }

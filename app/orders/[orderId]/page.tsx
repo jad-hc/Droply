@@ -7,6 +7,7 @@ import { requireUser } from "@/lib/auth-guard";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { DeliveryTrackingMapWrapper } from "@/components/delivery-tracking-map-wrapper";
 import { calculateDeliveryEta } from "@/lib/delivery-eta";
+import { ReviewForm } from "./review/review-form";
 
 type Props = {
   params: Promise<{
@@ -87,6 +88,8 @@ export default async function OrderPage({
       },
 
       items: true,
+      restaurantReview: true,
+      driverReview: true,
     },
   });
 
@@ -602,6 +605,68 @@ export default async function OrderPage({
             </div>
           </div>
         </div>
+
+        {order.status === "DELIVERED" &&
+  !order.restaurantReview && (
+    <div className="mt-8">
+      <ReviewForm
+        orderId={order.id}
+        hasDriver={Boolean(
+          order.driverId
+        )}
+      />
+    </div>
+  )}
+
+  {order.restaurantReview && (
+  <section className="mt-8 rounded-xl border p-6">
+    <h2 className="text-xl font-semibold">
+      Your Review
+    </h2>
+
+    <p className="mt-4">
+      Restaurant:{" "}
+      {"★".repeat(
+        order.restaurantReview.rating
+      )}
+      {"☆".repeat(
+        5 -
+          order.restaurantReview.rating
+      )}
+    </p>
+
+    {order.restaurantReview.comment && (
+      <p className="mt-2 text-sm text-muted-foreground">
+        {
+          order.restaurantReview.comment
+        }
+      </p>
+    )}
+
+    {order.driverReview && (
+      <div className="mt-5 border-t pt-5">
+        <p>
+          Driver:{" "}
+          {"★".repeat(
+            order.driverReview.rating
+          )}
+          {"☆".repeat(
+            5 -
+              order.driverReview.rating
+          )}
+        </p>
+
+        {order.driverReview.comment && (
+          <p className="mt-2 text-sm text-muted-foreground">
+            {
+              order.driverReview.comment
+            }
+          </p>
+        )}
+      </div>
+    )}
+  </section>
+)}
 
         <div className="mt-6 border-t pt-5">
           <div className="flex justify-between">

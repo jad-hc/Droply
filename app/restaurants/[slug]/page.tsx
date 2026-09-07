@@ -59,6 +59,11 @@ export default async function PublicRestaurantPage({
         },
       },
     },
+    reviews: {
+  select: {
+    rating: true,
+  },
+},
   },
 });
 
@@ -78,6 +83,18 @@ export default async function PublicRestaurantPage({
     timezone:
       restaurant.timezone,
   });
+
+  const reviewCount =
+  restaurant.reviews.length;
+
+const averageRating =
+  reviewCount > 0
+    ? restaurant.reviews.reduce(
+        (sum, review) =>
+          sum + review.rating,
+        0
+      ) / reviewCount
+    : null;
 
   return (
     <main>
@@ -175,6 +192,16 @@ export default async function PublicRestaurantPage({
                   ))}
                 </div>
               )}
+              {averageRating != null && (
+  <p className="mt-2 text-sm">
+    ⭐ {averageRating.toFixed(1)}
+    {" · "}
+    {reviewCount}{" "}
+    {reviewCount === 1
+      ? "review"
+      : "reviews"}
+  </p>
+)}
             </section>
           ))}
         </div>
