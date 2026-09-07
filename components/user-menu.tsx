@@ -29,15 +29,12 @@ export function UserMenu() {
   }
 
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex items-center gap-4 p-10">
       <span>{session.user.name}</span>
 
       <button onClick={handleLogout} className="rounded-md bg-red-500 px-3 py-1 text-sm text-white hover:bg-red-600">
         Logout
       </button>
-      {session?.user && (
-        <NotificationBell />
-      )}
     </div>
   );
 }
