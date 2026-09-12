@@ -27,6 +27,18 @@ enum DriverStatus {
   BUSY
 }
 
+enum RestaurantApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum DriverApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model User {
   id    String  @id @default(cuid())
   name  String
@@ -93,6 +105,7 @@ model Restaurant {
 
   isActive   Boolean @default(true)
   isApproved Boolean @default(false)
+  approvalStatus RestaurantApprovalStatus @default(PENDING)
 
   address   String?
   city      String?
@@ -159,6 +172,7 @@ model DriverProfile {
   locationUpdatedAt DateTime?
 
   isApproved Boolean @default(false)
+  approvalStatus DriverApprovalStatus @default(PENDING)
 
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)

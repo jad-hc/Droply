@@ -1,175 +1,229 @@
 import Link from "next/link";
-
 import prisma from "@/lib/prisma";
-import { requireRole } from "@/lib/auth-guard";
-import { UserRole } from "@/app/generated/prisma/client";
-
+import {
+  RestaurantApprovalStatus,
+} from "@/app/generated/prisma/client";
 import {
   approveRestaurant,
-  reactivateRestaurant,
+  rejectRestaurant,
   suspendRestaurant,
+  reactivateRestaurant,
 } from "./actions";
 
 export default async function AdminRestaurantsPage() {
-  await requireRole(
-    UserRole.ADMIN
-  );
-
-  const restaurants =
-    await prisma.restaurant.findMany({
-      orderBy: {
-        createdAt: "desc",
-      },
-
-      include: {
-        owner: {
-          select: {
-            name: true,
-            email: true,
-            phone: true,
-          },
-        },
-
-        _count: {
-          select: {
-            menuItems: true,
-            orders: true,
-          },
+  const restaurants = await prisma.restaurant.findMany({
+    orderBy: {
+      createdAt: "desc",
+    },
+    include: {
+      owner: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
         },
       },
-    });
+      _count: {
+        select: {
+          orders: true,
+          menuItems: true,
+          reviews: true,
+        },
+      },
+    },
+  });
+
+  const pendingCount = restaurants.filter(
+    (restaurant) =>
+      restaurant.approvalStatus === RestaurantApprovalStatus.PENDING
+  ).length;
+
+  const approvedCount = restaurants.filter(
+    (restaurant) =>
+      restaurant.approvalStatus === RestaurantApprovalStatus.APPROVED
+  ).length;
+
+  const rejectedCount = restaurants.filter(
+    (restaurant) =>
+      restaurant.approvalStatus === RestaurantApprovalStatus.REJECTED
+  ).length;
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-10">
+    <div className="space-y-6">
+      {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold">
+        <h2 className="text-2xl font-bold tracking-tight">
           Restaurants
-        </h1>
+        </h2>
 
-        <p className="mt-2 text-muted-foreground">
-          Review and manage restaurant applications.
+        <p className="text-muted-foreground">
+          Manage restaurant applications and restaurants on the platform.
         </p>
       </div>
 
-      {restaurants.length === 0 ? (
-        <div className="mt-8 rounded-xl border p-10 text-center text-muted-foreground">
-          No restaurants found.
+      {/* Statistics */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-lg border bg-background p-5">
+          <p className="text-sm text-muted-foreground">
+            Total
+          </p>
+
+          <p className="mt-2 text-3xl font-bold">
+            {restaurants.length}
+          </p>
         </div>
-      ) : (
-        <div className="mt-8 space-y-5">
-          {restaurants.map(
-            (restaurant) => (
+
+        <div className="rounded-lg border bg-background p-5">
+          <p className="text-sm text-muted-foreground">
+            Pending
+          </p>
+
+          <p className="mt-2 text-3xl font-bold">
+            {pendingCount}
+          </p>
+        </div>
+
+        <div className="rounded-lg border bg-background p-5">
+          <p className="text-sm text-muted-foreground">
+            Approved
+          </p>
+
+          <p className="mt-2 text-3xl font-bold">
+            {approvedCount}
+          </p>
+        </div>
+
+        <div className="rounded-lg border bg-background p-5">
+          <p className="text-sm text-muted-foreground">
+            Rejected
+          </p>
+
+          <p className="mt-2 text-3xl font-bold">
+            {rejectedCount}
+          </p>
+        </div>
+      </div>
+
+      {/* Restaurant list */}
+      <div className="overflow-hidden rounded-lg border bg-background">
+        <div className="border-b px-6 py-4">
+          <h3 className="font-semibold">
+            All Restaurants
+          </h3>
+        </div>
+
+        {restaurants.length === 0 ? (
+          <div className="p-10 text-center text-muted-foreground">
+            No restaurants found.
+          </div>
+        ) : (
+          <div className="divide-y">
+            {restaurants.map((restaurant) => (
               <div
-                key={
-                  restaurant.id
-                }
-                className="rounded-xl border p-6"
+                key={restaurant.id}
+                className="flex flex-col gap-4 p-6 lg:flex-row lg:items-center lg:justify-between"
               >
-                <div className="flex flex-wrap items-start justify-between gap-5">
-                  <div className="flex gap-4">
-                    {restaurant.logo && (
-                      <img
-                        src={
-                          restaurant.logo
-                        }
-                        alt={
-                          restaurant.name
-                        }
-                        className="h-16 w-16 rounded-lg border object-cover"
-                      />
+                {/* Restaurant info */}
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h4 className="font-semibold">
+                      {restaurant.name}
+                    </h4>
+
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                        restaurant.approvalStatus ===
+                        RestaurantApprovalStatus.APPROVED
+                          ? "bg-green-100 text-green-700"
+                          : restaurant.approvalStatus ===
+                              RestaurantApprovalStatus.REJECTED
+                            ? "bg-red-100 text-red-700"
+                            : "bg-yellow-100 text-yellow-700"
+                      }`}
+                    >
+                      {restaurant.approvalStatus}
+                    </span>
+
+                    {restaurant.approvalStatus ===
+                      RestaurantApprovalStatus.APPROVED && (
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                          restaurant.isActive
+                            ? "bg-blue-100 text-blue-700"
+                            : "bg-gray-100 text-gray-700"
+                        }`}
+                      >
+                        {restaurant.isActive
+                          ? "ACTIVE"
+                          : "SUSPENDED"}
+                      </span>
                     )}
-
-                    <div>
-                      <h2 className="text-lg font-semibold">
-                        {
-                          restaurant.name
-                        }
-                      </h2>
-
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        Owner:{" "}
-                        {
-                          restaurant
-                            .owner
-                            .name
-                        }
-                      </p>
-
-                      <p className="text-sm text-muted-foreground">
-                        {
-                          restaurant
-                            .owner
-                            .email
-                        }
-                      </p>
-
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        {[
-                          restaurant.area,
-                          restaurant.city,
-                        ]
-                          .filter(
-                            Boolean
-                          )
-                          .join(", ")}
-                      </p>
-                    </div>
                   </div>
 
-                  <div className="text-right">
-                    <div className="flex flex-wrap justify-end gap-2">
-                      <span className="rounded bg-muted px-2 py-1 text-xs">
-                        {restaurant.isApproved
-                          ? "Approved"
-                          : "Pending"}
-                      </span>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {restaurant.owner.name} ·{" "}
+                    {restaurant.owner.email}
+                  </p>
 
-                      <span className="rounded bg-muted px-2 py-1 text-xs">
-                        {restaurant.isActive
-                          ? "Active"
-                          : "Inactive"}
-                      </span>
-                    </div>
+                  <div className="mt-2 flex flex-wrap gap-4 text-xs text-muted-foreground">
+                    <span>
+                      Orders: {restaurant._count.orders}
+                    </span>
 
-                    <p className="mt-3 text-sm text-muted-foreground">
-                      {
-                        restaurant
-                          ._count
-                          .menuItems
-                      }{" "}
-                      menu items ·{" "}
-                      {
-                        restaurant
-                          ._count
-                          .orders
-                      }{" "}
-                      orders
-                    </p>
+                    <span>
+                      Menu items: {restaurant._count.menuItems}
+                    </span>
+
+                    <span>
+                      Reviews: {restaurant._count.reviews}
+                    </span>
                   </div>
                 </div>
 
-                <div className="mt-6 flex flex-wrap gap-3 border-t pt-5">
+                {/* Actions */}
+                <div className="flex flex-wrap items-center gap-2">
                   <Link
-                    href={`/restaurants/${restaurant.slug}`}
-                    className="rounded-md border px-4 py-2 text-sm"
+                    href={`/admin/restaurants/${restaurant.id}`}
+                    className="rounded-md border px-3 py-2 text-sm font-medium hover:bg-muted"
                   >
-                    View Restaurant
+                    View
                   </Link>
 
-                  {!restaurant.isApproved && (
-                    <form
-                      action={approveRestaurant.bind(
-                        null,
-                        restaurant.id
-                      )}
-                    >
-                      <button className="rounded-md bg-foreground px-4 py-2 text-sm text-background">
-                        Approve
-                      </button>
-                    </form>
+                  {restaurant.approvalStatus ===
+                    RestaurantApprovalStatus.PENDING && (
+                    <>
+                      <form
+                        action={approveRestaurant.bind(
+                          null,
+                          restaurant.id
+                        )}
+                      >
+                        <button
+                          type="submit"
+                          className="rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700"
+                        >
+                          Approve
+                        </button>
+                      </form>
+
+                      <form
+                        action={rejectRestaurant.bind(
+                          null,
+                          restaurant.id
+                        )}
+                      >
+                        <button
+                          type="submit"
+                          className="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700"
+                        >
+                          Reject
+                        </button>
+                      </form>
+                    </>
                   )}
 
-                  {restaurant.isApproved &&
+                  {restaurant.approvalStatus ===
+                    RestaurantApprovalStatus.APPROVED &&
                     restaurant.isActive && (
                       <form
                         action={suspendRestaurant.bind(
@@ -177,13 +231,17 @@ export default async function AdminRestaurantsPage() {
                           restaurant.id
                         )}
                       >
-                        <button className="rounded-md border px-4 py-2 text-sm text-red-600">
+                        <button
+                          type="submit"
+                          className="rounded-md border px-3 py-2 text-sm font-medium hover:bg-muted"
+                        >
                           Suspend
                         </button>
                       </form>
                     )}
 
-                  {restaurant.isApproved &&
+                  {restaurant.approvalStatus ===
+                    RestaurantApprovalStatus.APPROVED &&
                     !restaurant.isActive && (
                       <form
                         action={reactivateRestaurant.bind(
@@ -191,17 +249,20 @@ export default async function AdminRestaurantsPage() {
                           restaurant.id
                         )}
                       >
-                        <button className="rounded-md bg-foreground px-4 py-2 text-sm text-background">
+                        <button
+                          type="submit"
+                          className="rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700"
+                        >
                           Reactivate
                         </button>
                       </form>
                     )}
                 </div>
               </div>
-            )
-          )}
-        </div>
-      )}
-    </main>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
