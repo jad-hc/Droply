@@ -9,6 +9,10 @@ export async function requireUser() {
     redirect("/login");
   }
 
+  if (!user.isActive) {
+    throw new Error("Your account has been suspended.");
+  }
+
   return user;
 }
 

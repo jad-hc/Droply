@@ -47,6 +47,7 @@ model User {
   image String?
 
   roles UserRole[] @default([CUSTOMER])
+  isActive Boolean @default(true)
 
   addresses             Address[]
   ownedRestaurants      Restaurant[]       @relation("RestaurantOwner")
